@@ -1,0 +1,110 @@
+<Window x:Class="RevitToolkit.UI.CopyDimensionsDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Copy Dimensions"
+        Width="480" Height="520"
+        WindowStartupLocation="CenterScreen"
+        ResizeMode="CanResize"
+        Background="#1E1E2E">
+
+    <Window.Resources>
+        <Style TargetType="Label">
+            <Setter Property="Foreground" Value="#CDD6F4"/>
+            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="FontSize" Value="12"/>
+        </Style>
+        <Style TargetType="ComboBox">
+            <Setter Property="Background" Value="#313244"/>
+            <Setter Property="Foreground" Value="#CDD6F4"/>
+            <Setter Property="BorderBrush" Value="#45475A"/>
+            <Setter Property="Height" Value="28"/>
+        </Style>
+        <Style x:Key="PrimaryBtn" TargetType="Button">
+            <Setter Property="Background" Value="#A6E3A1"/>
+            <Setter Property="Foreground" Value="#1E1E2E"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Padding" Value="20,8"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+        </Style>
+        <Style x:Key="SecondaryBtn" TargetType="Button">
+            <Setter Property="Background" Value="#45475A"/>
+            <Setter Property="Foreground" Value="#CDD6F4"/>
+            <Setter Property="Padding" Value="20,8"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+        </Style>
+        <Style x:Key="SmallBtn" TargetType="Button">
+            <Setter Property="Background" Value="#313244"/>
+            <Setter Property="Foreground" Value="#89B4FA"/>
+            <Setter Property="FontSize" Value="10"/>
+            <Setter Property="Padding" Value="7,3"/>
+            <Setter Property="BorderBrush" Value="#45475A"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Cursor" Value="Hand"/>
+        </Style>
+    </Window.Resources>
+
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <StackPanel Grid.Row="0" Margin="0,0,0,16">
+            <TextBlock Text="📐  Copy Dimensions" FontSize="20" FontWeight="Bold"
+                       Foreground="#A6E3A1" FontFamily="Segoe UI"/>
+            <TextBlock Text="Copy all dimension strings from a source view to one or more target views."
+                       Foreground="#6C7086" FontSize="11" Margin="0,4,0,0" TextWrapping="Wrap"/>
+        </StackPanel>
+
+        <!-- Source view -->
+        <StackPanel Grid.Row="1" Margin="0,0,0,12">
+            <Label Content="SOURCE VIEW" FontWeight="SemiBold" Foreground="#89B4FA" Margin="0,0,0,4"/>
+            <ComboBox x:Name="SourceViewCombo"/>
+        </StackPanel>
+
+        <!-- Target views header + buttons -->
+        <Grid Grid.Row="2" Margin="0,0,0,6">
+            <Label Content="TARGET VIEWS  (multi-select)" FontWeight="SemiBold" Foreground="#89B4FA"
+                   Padding="0" VerticalAlignment="Center"/>
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                <Button Content="All"  Style="{StaticResource SmallBtn}" Click="SelectAll_Click" Margin="0,0,4,0"/>
+                <Button Content="None" Style="{StaticResource SmallBtn}" Click="ClearAll_Click"/>
+            </StackPanel>
+        </Grid>
+
+        <!-- Target views list -->
+        <Border Grid.Row="3" Background="#313244" BorderBrush="#45475A" BorderThickness="1" CornerRadius="4">
+            <ListBox x:Name="TargetViewsList"
+                     SelectionMode="Extended"
+                     Background="Transparent"
+                     BorderThickness="0"
+                     Foreground="#CDD6F4"
+                     FontFamily="Segoe UI"
+                     FontSize="12"
+                     ScrollViewer.VerticalScrollBarVisibility="Auto"/>
+        </Border>
+
+        <!-- Info block -->
+        <Border Grid.Row="4" Background="#313244" CornerRadius="4" Padding="10,8" Margin="0,10,0,16">
+            <TextBlock TextWrapping="Wrap" Foreground="#A6ADC8" FontSize="11">
+                <Run FontWeight="Bold" Foreground="#FAB387">ℹ  Note: </Run>
+                <Run>Dimensions whose references (grids, walls, edges) are not visible in a target view will be silently skipped. A summary is shown after the operation.</Run>
+            </TextBlock>
+        </Border>
+
+        <!-- Buttons -->
+        <StackPanel Grid.Row="5" Orientation="Horizontal" HorizontalAlignment="Right">
+            <Button Content="Cancel" Style="{StaticResource SecondaryBtn}"
+                    Margin="0,0,10,0" Click="CancelButton_Click"/>
+            <Button Content="Copy Dimensions →" Style="{StaticResource PrimaryBtn}"
+                    Click="OkButton_Click"/>
+        </StackPanel>
+    </Grid>
+</Window>
