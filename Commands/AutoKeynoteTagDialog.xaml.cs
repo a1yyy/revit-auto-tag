@@ -13,15 +13,21 @@ namespace RevitToolkit.UI
         private readonly List<RevitLinkInstance> _links;
         private readonly View _activeView;
 
-        // Output properties
-        public Document SelectedDocument      { get; private set; }
-        public RevitLinkInstance SelectedLinkInstance { get; private set; }
-        public BuiltInCategory SelectedCategory { get; private set; }
-        public FamilySymbol SelectedKeynoteTagType { get; private set; }
-        public bool LeaderEnabled             { get; private set; }
-        public TagOrientation SelectedOrientation { get; private set; }
+        // Filtered to categories that exist in the current Revit version at runtime
+        private (string Name, BuiltInCategory Cat)[] _availableCategories;
 
-        // Taggable categories (architecture focused; expand as needed)
+        // Output properties
+        public Document SelectedDocument           { get; private set; }
+        public RevitLinkInstance SelectedLinkInstance { get; private set; }
+        public BuiltInCategory SelectedCategory    { get; private set; }
+        public FamilySymbol SelectedKeynoteTagType { get; private set; }
+        public bool LeaderEnabled                  { get; private set; }
+        public TagOrientation SelectedOrientation  { get; private set; }
+        public bool OneTagPerType                  { get; private set; }
+
+        // Full master list — OST_Toposolid requires Revit 2024+.
+        // Categories not present in the active Revit version are filtered
+        // at runtime via Category.GetCategory so the DLL stays safe on 2022/2023.
         private static readonly (string Name, BuiltInCategory Cat)[] TaggableCategories =
         {
             ("Walls",              BuiltInCategory.OST_Walls),
@@ -43,6 +49,7 @@ namespace RevitToolkit.UI
             ("Specialty Equip.",   BuiltInCategory.OST_SpecialityEquipment),
             ("Generic Models",     BuiltInCategory.OST_GenericModel),
             ("Site",               BuiltInCategory.OST_Site),
+            ("Toposolid",          BuiltInCategory.OST_Toposolid),
             ("Stairs",             BuiltInCategory.OST_Stairs),
             ("Railings",           BuiltInCategory.OST_Railings),
             ("Ramps",              BuiltInCategory.OST_Ramps),
@@ -50,8 +57,8 @@ namespace RevitToolkit.UI
 
         public AutoKeynoteTagDialog(Document hostDoc, List<RevitLinkInstance> links, View activeView)
         {
-            _hostDoc   = hostDoc;
-            _links     = links;
+            _hostDoc    = hostDoc;
+            _links      = links;
             _activeView = activeView;
             InitializeComponent();
             PopulateControls();
@@ -65,13 +72,17 @@ namespace RevitToolkit.UI
             foreach (var l in _links)
                 modelSources.Add(new ModelSource { DisplayName = $"[Linked]  {l.GetLinkDocument().Title}", Doc = l.GetLinkDocument(), Link = l });
 
-            ModelSourceCombo.ItemsSource         = modelSources;
-            ModelSourceCombo.DisplayMemberPath   = "DisplayName";
-            ModelSourceCombo.SelectedIndex       = 0;
+            ModelSourceCombo.ItemsSource       = modelSources;
+            ModelSourceCombo.DisplayMemberPath = "DisplayName";
+            ModelSourceCombo.SelectedIndex     = 0;
 
-            // Category combo
-            CategoryCombo.ItemsSource           = TaggableCategories.Select(c => c.Name).ToList();
-            CategoryCombo.SelectedIndex         = 0;
+            // Filter master list to categories that exist in this Revit version
+            _availableCategories = TaggableCategories
+                .Where(c => Category.GetCategory(_hostDoc, c.Cat) != null)
+                .ToArray();
+
+            CategoryCombo.ItemsSource  = _availableCategories.Select(c => c.Name).ToList();
+            CategoryCombo.SelectedIndex = 0;
 
             // Keynote tag types
             PopulateKeynoteTagTypes();
@@ -126,11 +137,12 @@ namespace RevitToolkit.UI
             if (CategoryCombo.SelectedIndex < 0) { Warn("Select a category."); return; }
             if (TagTypeCombo.SelectedItem == null) { Warn("No keynote tag type available.\nLoad a Keynote Tag family into the project first."); return; }
 
-            SelectedDocument      = src.Doc;
-            SelectedLinkInstance  = src.Link;
-            SelectedCategory      = TaggableCategories[CategoryCombo.SelectedIndex].Cat;
+            SelectedDocument       = src.Doc;
+            SelectedLinkInstance   = src.Link;
+            SelectedCategory       = _availableCategories[CategoryCombo.SelectedIndex].Cat;
             SelectedKeynoteTagType = TagTypeCombo.SelectedItem as FamilySymbol;
             LeaderEnabled          = LeaderCheckBox.IsChecked == true;
+            OneTagPerType          = OneTagPerTypeCheckBox.IsChecked == true;
             SelectedOrientation    = OrientationCombo.SelectedIndex == 1
                                      ? TagOrientation.Vertical
                                      : TagOrientation.Horizontal;

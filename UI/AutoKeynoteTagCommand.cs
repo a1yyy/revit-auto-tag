@@ -40,12 +40,13 @@ namespace RevitToolkit.Commands
                 if (dialog.ShowDialog() != true)
                     return Result.Cancelled;
 
-                Document targetDoc     = dialog.SelectedDocument;   // host or linked
-                RevitLinkInstance link = dialog.SelectedLinkInstance; // null if host
-                BuiltInCategory category = dialog.SelectedCategory;
-                FamilySymbol tagType   = dialog.SelectedKeynoteTagType;
-                bool leaderEnabled     = dialog.LeaderEnabled;
-                TagOrientation orientation = dialog.SelectedOrientation;
+                Document targetDoc          = dialog.SelectedDocument;
+                RevitLinkInstance link      = dialog.SelectedLinkInstance;
+                BuiltInCategory category    = dialog.SelectedCategory;
+                FamilySymbol tagType        = dialog.SelectedKeynoteTagType;
+                bool leaderEnabled          = dialog.LeaderEnabled;
+                bool oneTagPerType          = dialog.OneTagPerType;
+                TagOrientation orientation  = dialog.SelectedOrientation;
 
                 if (tagType == null)
                 {
@@ -53,15 +54,29 @@ namespace RevitToolkit.Commands
                     return Result.Cancelled;
                 }
 
-                // Collect target elements visible in active view
+                // Collect elements visible in active view
                 IEnumerable<Element> candidates = CollectTaggableElements(
                     doc, targetDoc, link, activeView, category);
 
-                // Filter already-tagged elements
                 var existingTaggedIds = GetAlreadyTaggedElementIds(doc, activeView);
-                var toTag = candidates
-                    .Where(e => !existingTaggedIds.Contains(e.Id))
-                    .ToList();
+
+                List<Element> toTag;
+                if (oneTagPerType)
+                {
+                    // One tag per unique family type: group candidates by TypeId,
+                    // skip any group where at least one instance is already tagged.
+                    toTag = candidates
+                        .GroupBy(e => e.GetTypeId())
+                        .Where(g => !g.Any(e => existingTaggedIds.Contains(e.Id)))
+                        .Select(g => g.First())
+                        .ToList();
+                }
+                else
+                {
+                    toTag = candidates
+                        .Where(e => !existingTaggedIds.Contains(e.Id))
+                        .ToList();
+                }
 
                 if (toTag.Count == 0)
                 {
@@ -115,7 +130,8 @@ namespace RevitToolkit.Commands
                     tx.Commit();
                 }
 
-                string summary = $"✅ Keynote tags placed: {placed}\n" +
+                string mode    = oneTagPerType ? "one per family type" : "all instances";
+                string summary = $"✅ Keynote tags placed: {placed}  ({mode})\n" +
                                  $"⏭  Skipped (no geometry / already tagged): {skipped}";
                 if (errors.Any())
                     summary += "\n\nFirst errors:\n" + string.Join("\n", errors);

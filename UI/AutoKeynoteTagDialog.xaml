@@ -101,6 +101,10 @@
             <CheckBox x:Name="LeaderCheckBox" Content="Include leader line"
                       Foreground="#CDD6F4" FontFamily="Segoe UI" FontSize="12"
                       IsChecked="False"/>
+            <CheckBox x:Name="OneTagPerTypeCheckBox" Content="Tag one instance per family type"
+                      Foreground="#CDD6F4" FontFamily="Segoe UI" FontSize="12"
+                      IsChecked="True" Margin="0,6,0,0"
+                      ToolTip="When checked, only one element per family type is tagged in this view. Subsequent runs will skip types that already have a tag."/>
         </StackPanel>
 
         <!-- Spacer / info block -->
