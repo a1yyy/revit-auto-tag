@@ -40,13 +40,13 @@ namespace RevitToolkit.Commands
                 if (dialog.ShowDialog() != true)
                     return Result.Cancelled;
 
-                Document targetDoc          = dialog.SelectedDocument;
-                RevitLinkInstance link      = dialog.SelectedLinkInstance;
-                BuiltInCategory category    = dialog.SelectedCategory;
-                FamilySymbol tagType        = dialog.SelectedKeynoteTagType;
-                bool leaderEnabled          = dialog.LeaderEnabled;
-                bool oneTagPerType          = dialog.OneTagPerType;
-                TagOrientation orientation  = dialog.SelectedOrientation;
+                Document targetDoc                  = dialog.SelectedDocument;
+                RevitLinkInstance link              = dialog.SelectedLinkInstance;
+                List<BuiltInCategory> categories    = dialog.SelectedCategories;
+                FamilySymbol tagType                = dialog.SelectedKeynoteTagType;
+                bool leaderEnabled                  = dialog.LeaderEnabled;
+                bool oneTagPerType                  = dialog.OneTagPerType;
+                TagOrientation orientation          = dialog.SelectedOrientation;
 
                 if (tagType == null)
                 {
@@ -54,9 +54,12 @@ namespace RevitToolkit.Commands
                     return Result.Cancelled;
                 }
 
-                // Collect elements visible in active view
-                IEnumerable<Element> candidates = CollectTaggableElements(
-                    doc, targetDoc, link, activeView, category);
+                // Collect from every selected category; deduplicate by ElementId
+                var candidates = categories
+                    .SelectMany(cat => CollectTaggableElements(doc, targetDoc, link, activeView, cat))
+                    .GroupBy(e => e.Id)
+                    .Select(g => g.First())
+                    .ToList();
 
                 var existingTaggedIds = GetAlreadyTaggedElementIds(doc, activeView);
 
@@ -81,7 +84,7 @@ namespace RevitToolkit.Commands
                 if (toTag.Count == 0)
                 {
                     TaskDialog.Show("Auto Keynote Tag",
-                        "All visible elements in this category are already tagged, or no elements were found.");
+                        "All visible elements in the selected categories are already tagged, or no elements were found.");
                     return Result.Succeeded;
                 }
 
@@ -132,7 +135,8 @@ namespace RevitToolkit.Commands
 
                 string mode    = oneTagPerType ? "one per family type" : "all instances";
                 string summary = $"✅ Keynote tags placed: {placed}  ({mode})\n" +
-                                 $"⏭  Skipped (no geometry / already tagged): {skipped}";
+                                 $"⏭  Skipped (no geometry / already tagged): {skipped}\n" +
+                                 $"   Categories tagged: {categories.Count}";
                 if (errors.Any())
                     summary += "\n\nFirst errors:\n" + string.Join("\n", errors);
 
