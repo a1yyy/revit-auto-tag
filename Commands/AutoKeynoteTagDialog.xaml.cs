@@ -49,6 +49,7 @@ namespace RevitToolkit.UI
             ("Toposolid",            BuiltInCategory.OST_Toposolid,           1),
             ("Furniture",            BuiltInCategory.OST_Furniture,           1),
             ("Specialty Equipment",  BuiltInCategory.OST_SpecialityEquipment, 1),
+            ("Detail Items",         BuiltInCategory.OST_DetailComponents,    2),
             ("Furniture Systems",    BuiltInCategory.OST_FurnitureSystems,    2),
             ("Mechanical Equipment", BuiltInCategory.OST_MechanicalEquipment, 2),
             ("Plumbing Fixtures",    BuiltInCategory.OST_PlumbingFixtures,    2),
