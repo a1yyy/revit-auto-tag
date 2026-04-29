@@ -56,6 +56,19 @@ namespace RevitToolkit
             };
 
             panel.AddItem(cleanupBtn);
+
+            // --- Button 4: Batch Auto Tag ---
+            PushButtonData batchTagBtn = new PushButtonData(
+                "BatchAutoTag",
+                "Batch\nTag Views",
+                assemblyPath,
+                "RevitToolkit.Commands.BatchTagCommand")
+            {
+                ToolTip = "Tag elements across multiple views in one pass.",
+                LongDescription = "Select views, categories, and tag settings. Keynote tags are placed across all selected views with the same options as Auto Keynote Tag.",
+            };
+
+            panel.AddItem(batchTagBtn);
             return Result.Succeeded;
         }
 

@@ -28,6 +28,10 @@
 
   <!-- XAML pages -->
   <ItemGroup>
+    <Page Include="UI\BatchTagDialog.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
     <Page Include="UI\CleanupDialog.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
