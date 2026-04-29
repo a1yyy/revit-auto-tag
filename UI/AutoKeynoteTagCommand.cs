@@ -46,6 +46,7 @@ namespace RevitToolkit.Commands
                 FamilySymbol tagType                = dialog.SelectedKeynoteTagType;
                 bool leaderEnabled                  = dialog.LeaderEnabled;
                 bool oneTagPerType                  = dialog.OneTagPerType;
+                bool avoidOverlaps                  = dialog.AvoidOverlaps;
                 TagOrientation orientation          = dialog.SelectedOrientation;
 
                 if (tagType == null)
@@ -91,12 +92,12 @@ namespace RevitToolkit.Commands
                 int placed = 0;
                 int skipped = 0;
                 var errors = new List<string>();
+                var placedTagIds = new List<ElementId>();
 
                 using (Transaction tx = new Transaction(doc, "Auto Place Keynote Tags"))
                 {
                     tx.Start();
 
-                    // Activate tag symbol if needed
                     if (!tagType.IsActive)
                         tagType.Activate();
 
@@ -111,7 +112,7 @@ namespace RevitToolkit.Commands
                                 ? new Reference(elem).CreateLinkReference(link)
                                 : new Reference(elem);
 
-                            IndependentTag.Create(
+                            IndependentTag newTag = IndependentTag.Create(
                                 doc,
                                 tagType.Id,
                                 activeView.Id,
@@ -120,6 +121,7 @@ namespace RevitToolkit.Commands
                                 orientation,
                                 tagPoint);
 
+                            placedTagIds.Add(newTag.Id);
                             placed++;
                         }
                         catch (Exception ex)
@@ -132,6 +134,9 @@ namespace RevitToolkit.Commands
 
                     tx.Commit();
                 }
+
+                if (avoidOverlaps && placedTagIds.Count > 1)
+                    ResolveTagOverlaps(doc, activeView, placedTagIds);
 
                 string mode    = oneTagPerType ? "one per family type" : "all instances";
                 string summary = $"✅ Keynote tags placed: {placed}  ({mode})\n" +
@@ -147,6 +152,82 @@ namespace RevitToolkit.Commands
             {
                 message = ex.Message;
                 return Result.Failed;
+            }
+        }
+
+        // ─── Overlap resolution ──────────────────────────────────────────────────────
+
+        // Iteratively nudges tags apart using their initial bounding-box sizes.
+        // All final positions are written in one transaction (one undo step).
+        private void ResolveTagOverlaps(Document doc, View view, List<ElementId> tagIds)
+        {
+            const int MaxIterations = 8;
+            const double Margin = 0.02; // ~6 mm padding between tags (internal feet units)
+
+            var tags = tagIds
+                .Select(id => doc.GetElement(id) as IndependentTag)
+                .Where(t => t != null)
+                .ToList();
+
+            // Snapshot initial bounding-box half-extents (fixed — tags don't resize when moved)
+            var halfW = new double[tags.Count];
+            var halfH = new double[tags.Count];
+            for (int i = 0; i < tags.Count; i++)
+            {
+                BoundingBoxXYZ bb = tags[i].get_BoundingBox(view);
+                if (bb != null)
+                {
+                    halfW[i] = (bb.Max.X - bb.Min.X) / 2.0;
+                    halfH[i] = (bb.Max.Y - bb.Min.Y) / 2.0;
+                }
+            }
+
+            // Work on positions in memory
+            var pos = tags.Select(t => t.TagHeadPosition).ToArray();
+
+            for (int iter = 0; iter < MaxIterations; iter++)
+            {
+                bool anyOverlap = false;
+                var delta = new XYZ[tags.Count];
+                for (int k = 0; k < delta.Length; k++) delta[k] = XYZ.Zero;
+
+                for (int i = 0; i < tags.Count; i++)
+                {
+                    for (int j = i + 1; j < tags.Count; j++)
+                    {
+                        double gapX = Math.Abs(pos[i].X - pos[j].X) - (halfW[i] + halfW[j] + Margin);
+                        double gapY = Math.Abs(pos[i].Y - pos[j].Y) - (halfH[i] + halfH[j] + Margin);
+
+                        if (gapX >= 0 || gapY >= 0) continue; // no overlap
+
+                        anyOverlap = true;
+
+                        // Push along the axis with the smaller gap (least effort to separate)
+                        XYZ dir = new XYZ(pos[i].X - pos[j].X, pos[i].Y - pos[j].Y, 0);
+                        if (dir.IsZeroLength()) dir = XYZ.BasisX;
+                        dir = dir.Normalize();
+
+                        double push = (Math.Min(-gapX, -gapY) / 2.0) + 0.001;
+                        delta[i] = delta[i].Add(dir.Multiply(push));
+                        delta[j] = delta[j].Add(dir.Negate().Multiply(push));
+                    }
+                }
+
+                if (!anyOverlap) break;
+
+                for (int i = 0; i < pos.Length; i++)
+                    pos[i] = pos[i].Add(delta[i]);
+            }
+
+            // Write all resolved positions in one transaction
+            using (Transaction tx = new Transaction(doc, "Resolve Tag Overlaps"))
+            {
+                tx.Start();
+                for (int i = 0; i < tags.Count; i++)
+                {
+                    try { tags[i].TagHeadPosition = pos[i]; } catch { }
+                }
+                tx.Commit();
             }
         }
 

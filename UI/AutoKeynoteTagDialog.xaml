@@ -127,6 +127,10 @@
                       Foreground="#CDD6F4" FontFamily="Segoe UI" FontSize="12"
                       IsChecked="True" Margin="0,6,0,0"
                       ToolTip="Only one element per family type is tagged. Re-running is safe — types already tagged in this view are skipped."/>
+            <CheckBox x:Name="AvoidOverlapsCheckBox" Content="Avoid tag overlaps"
+                      Foreground="#CDD6F4" FontFamily="Segoe UI" FontSize="12"
+                      IsChecked="True" Margin="0,6,0,0"
+                      ToolTip="After placing tags, nudge overlapping tags apart. Disable for very large models if speed is a concern."/>
         </StackPanel>
 
         <!-- Info block -->

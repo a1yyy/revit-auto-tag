@@ -24,6 +24,7 @@ namespace RevitToolkit.UI
         public bool LeaderEnabled                     { get; private set; }
         public TagOrientation SelectedOrientation     { get; private set; }
         public bool OneTagPerType                     { get; private set; }
+        public bool AvoidOverlaps                     { get; private set; }
 
         // ── Category master list ─────────────────────────────────────────────────────
         // group 0 = Architecture, 1 = Landscape, 2 = Other
@@ -232,6 +233,7 @@ namespace RevitToolkit.UI
             SelectedKeynoteTagType = TagTypeCombo.SelectedItem as FamilySymbol;
             LeaderEnabled          = LeaderCheckBox.IsChecked == true;
             OneTagPerType          = OneTagPerTypeCheckBox.IsChecked == true;
+            AvoidOverlaps          = AvoidOverlapsCheckBox.IsChecked == true;
             SelectedOrientation    = OrientationCombo.SelectedIndex == 1
                                      ? TagOrientation.Vertical
                                      : TagOrientation.Horizontal;
