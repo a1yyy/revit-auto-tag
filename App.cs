@@ -42,6 +42,20 @@ namespace RevitToolkit
             };
 
             panel.AddItem(autoTagBtn);
+            panel.AddSeparator();
+
+            // --- Button 3: Tag Health / Cleanup ---
+            PushButtonData cleanupBtn = new PushButtonData(
+                "TagCleanup",
+                "Tag\nHealth",
+                assemblyPath,
+                "RevitToolkit.Commands.CleanupCommand")
+            {
+                ToolTip = "Scan the active view for orphaned and duplicate keynote tags.",
+                LongDescription = "Reports orphaned tags (linked element deleted), duplicate tags (same family type tagged more than once), and tags with no keynote value set. Provides one-click delete for fixable issues.",
+            };
+
+            panel.AddItem(cleanupBtn);
             return Result.Succeeded;
         }
 

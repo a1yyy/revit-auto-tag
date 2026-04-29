@@ -1,0 +1,143 @@
+<Window x:Class="RevitToolkit.UI.CleanupDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Tag Health"
+        Width="420" Height="380"
+        WindowStartupLocation="CenterScreen"
+        ResizeMode="NoResize"
+        Background="#1E1E2E">
+
+    <Window.Resources>
+        <Style TargetType="TextBlock">
+            <Setter Property="Foreground" Value="#CDD6F4"/>
+            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+        <Style x:Key="ActionBtn" TargetType="Button">
+            <Setter Property="Background" Value="#313244"/>
+            <Setter Property="Foreground" Value="#F38BA8"/>
+            <Setter Property="FontSize" Value="10"/>
+            <Setter Property="Padding" Value="8,3"/>
+            <Setter Property="BorderBrush" Value="#45475A"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="MinWidth" Value="90"/>
+        </Style>
+        <Style x:Key="PrimaryBtn" TargetType="Button">
+            <Setter Property="Background" Value="#A6E3A1"/>
+            <Setter Property="Foreground" Value="#1E1E2E"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Padding" Value="16,7"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+        </Style>
+        <Style x:Key="SecondaryBtn" TargetType="Button">
+            <Setter Property="Background" Value="#45475A"/>
+            <Setter Property="Foreground" Value="#CDD6F4"/>
+            <Setter Property="Padding" Value="16,7"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+        </Style>
+    </Window.Resources>
+
+    <Grid Margin="24">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="16"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="12"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <StackPanel Grid.Row="0">
+            <TextBlock Text="🧹  Tag Health" FontSize="20" FontWeight="Bold" Foreground="#A6E3A1"/>
+            <TextBlock x:Name="ViewNameText" Foreground="#6C7086" FontSize="11" Margin="0,4,0,0"/>
+        </StackPanel>
+
+        <!-- Summary table -->
+        <Grid Grid.Row="2">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="50"/>
+                <ColumnDefinition Width="110"/>
+            </Grid.ColumnDefinitions>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="28"/>
+                <RowDefinition Height="1"/>
+                <RowDefinition Height="28"/>
+                <RowDefinition Height="28"/>
+                <RowDefinition Height="28"/>
+                <RowDefinition Height="28"/>
+            </Grid.RowDefinitions>
+
+            <!-- Header row -->
+            <TextBlock Grid.Row="0" Grid.Column="0" Text="KEYNOTE TAGS IN VIEW"
+                       FontSize="10" FontWeight="SemiBold" Foreground="#89B4FA"/>
+            <TextBlock Grid.Row="0" Grid.Column="1" Text="COUNT"
+                       FontSize="10" FontWeight="SemiBold" Foreground="#89B4FA" HorizontalAlignment="Right"/>
+
+            <!-- Divider -->
+            <Rectangle Grid.Row="1" Grid.ColumnSpan="3" Fill="#45475A"/>
+
+            <!-- Total -->
+            <TextBlock Grid.Row="2" Grid.Column="0" Text="Total"/>
+            <TextBlock x:Name="TotalText" Grid.Row="2" Grid.Column="1" HorizontalAlignment="Right" FontWeight="SemiBold"/>
+
+            <!-- Valid -->
+            <TextBlock Grid.Row="3" Grid.Column="0" Text="✓  Valid" Foreground="#A6E3A1"/>
+            <TextBlock x:Name="ValidText" Grid.Row="3" Grid.Column="1" HorizontalAlignment="Right" Foreground="#A6E3A1"/>
+
+            <!-- Orphaned -->
+            <TextBlock Grid.Row="4" Grid.Column="0" Text="⚠  Orphaned  (linked element deleted)"/>
+            <TextBlock x:Name="OrphanedText" Grid.Row="4" Grid.Column="1" HorizontalAlignment="Right" Foreground="#F38BA8"/>
+            <Button x:Name="DeleteOrphanedBtn" Grid.Row="4" Grid.Column="2"
+                    Content="Delete All" Style="{StaticResource ActionBtn}"
+                    HorizontalAlignment="Right" IsEnabled="False"
+                    Click="DeleteOrphaned_Click"/>
+
+            <!-- Duplicates -->
+            <TextBlock Grid.Row="5" Grid.Column="0" Text="⚠  Duplicates  (same type, extra tags)"/>
+            <TextBlock x:Name="DuplicateText" Grid.Row="5" Grid.Column="1" HorizontalAlignment="Right" Foreground="#F38BA8"/>
+            <Button x:Name="DeleteDuplicateBtn" Grid.Row="5" Grid.Column="2"
+                    Content="Delete Extras" Style="{StaticResource ActionBtn}"
+                    HorizontalAlignment="Right" IsEnabled="False"
+                    Click="DeleteDuplicate_Click"/>
+        </Grid>
+
+        <!-- Blank keynote note -->
+        <Border Grid.Row="4" Background="#313244" CornerRadius="4" Padding="10,8">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock Grid.Column="0" TextWrapping="Wrap" Foreground="#A6ADC8" FontSize="11">
+                    <Run Foreground="#FAB387" FontWeight="Bold">ℹ  Blank keynote value: </Run>
+                    <Run x:Name="BlankText">0</Run>
+                    <Run> tag(s) will show empty on drawings. Set the Keynote parameter on the element type.</Run>
+                </TextBlock>
+            </Grid>
+        </Border>
+
+        <!-- Status + buttons -->
+        <Grid Grid.Row="6">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="8"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+
+            <TextBlock x:Name="StatusText" Grid.Column="0" VerticalAlignment="Center"
+                       FontSize="11" FontWeight="SemiBold"/>
+            <Button Grid.Column="1" Content="Re-scan" Style="{StaticResource SecondaryBtn}"
+                    Padding="12,7" Click="Rescan_Click"/>
+            <Button Grid.Column="3" Content="Close" Style="{StaticResource PrimaryBtn}"
+                    Click="Close_Click"/>
+        </Grid>
+    </Grid>
+</Window>

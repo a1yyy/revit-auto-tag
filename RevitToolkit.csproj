@@ -28,6 +28,10 @@
 
   <!-- XAML pages -->
   <ItemGroup>
+    <Page Include="UI\CleanupDialog.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
     <Page Include="UI\CopyDimensionsDialog.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
