@@ -1,4 +1,5 @@
 using Autodesk.Revit.DB;
+using RevitToolkit.Commands;
 using System.Collections.Generic;
 using System.Linq;
 using System.Windows;
@@ -12,6 +13,7 @@ namespace RevitToolkit.UI
         private readonly Document _hostDoc;
         private readonly List<RevitLinkInstance> _links;
         private readonly View _activeView;
+        private readonly PluginSettings _settings = PluginSettings.Load();
 
         private readonly List<(CheckBox Box, BuiltInCategory Cat)> _categoryCheckBoxes
             = new List<(CheckBox, BuiltInCategory)>();
@@ -115,6 +117,43 @@ namespace RevitToolkit.UI
 
             OrientationCombo.ItemsSource   = new[] { "Horizontal", "Vertical" };
             OrientationCombo.SelectedIndex = 0;
+
+            ApplySettings();
+        }
+
+        private void ApplySettings()
+        {
+            // Restore checkbox options
+            LeaderCheckBox.IsChecked        = _settings.LeaderEnabled;
+            OneTagPerTypeCheckBox.IsChecked = _settings.OneTagPerType;
+            AvoidOverlapsCheckBox.IsChecked = _settings.AvoidOverlaps;
+            OrientationCombo.SelectedIndex  = _settings.OrientationVertical ? 1 : 0;
+
+            // Restore model source by matching title
+            if (!string.IsNullOrEmpty(_settings.LastModelTitle))
+            {
+                var match = ModelSourceCombo.Items.Cast<object>()
+                    .FirstOrDefault(i => i.GetType().GetProperty("DisplayName")
+                                         ?.GetValue(i)?.ToString()
+                                         .Contains(_settings.LastModelTitle) == true);
+                if (match != null) ModelSourceCombo.SelectedItem = match;
+            }
+
+            // Restore tag family by name
+            if (!string.IsNullOrEmpty(_settings.LastTagFamilyName))
+            {
+                var match = TagTypeCombo.Items.Cast<Autodesk.Revit.DB.FamilySymbol>()
+                    .FirstOrDefault(fs => fs.FamilyName == _settings.LastTagFamilyName);
+                if (match != null) TagTypeCombo.SelectedItem = match;
+            }
+
+            // Restore selected categories
+            if (_settings.LastCategories.Any())
+            {
+                var saved = new HashSet<int>(_settings.LastCategories);
+                foreach (var (cb, cat) in _categoryCheckBoxes)
+                    cb.IsChecked = saved.Contains((int)cat);
+            }
         }
 
         private void BuildCategoryPanel()
@@ -237,6 +276,17 @@ namespace RevitToolkit.UI
             SelectedOrientation    = OrientationCombo.SelectedIndex == 1
                                      ? TagOrientation.Vertical
                                      : TagOrientation.Horizontal;
+
+            // Persist settings for next session
+            _settings.LeaderEnabled       = LeaderEnabled;
+            _settings.OneTagPerType       = OneTagPerType;
+            _settings.AvoidOverlaps       = AvoidOverlaps;
+            _settings.OrientationVertical = SelectedOrientation == TagOrientation.Vertical;
+            _settings.LastTagFamilyName   = SelectedKeynoteTagType?.FamilyName ?? "";
+            _settings.LastModelTitle      = src.DisplayName;
+            _settings.LastCategories      = selected.Select(c => (int)c).ToList();
+            _settings.Save();
+
             DialogResult = true;
             Close();
         }

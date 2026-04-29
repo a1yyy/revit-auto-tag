@@ -1,4 +1,5 @@
 using Autodesk.Revit.DB;
+using RevitToolkit.Commands;
 using System.Collections.Generic;
 using System.Linq;
 using System.Windows;
@@ -11,6 +12,7 @@ namespace RevitToolkit.UI
     {
         private readonly Document _hostDoc;
         private readonly IList<RevitLinkInstance> _links;
+        private readonly PluginSettings _settings = PluginSettings.Load();
 
         private readonly List<(CheckBox Box, BuiltInCategory Cat)> _catBoxes
             = new List<(CheckBox, BuiltInCategory)>();
@@ -139,7 +141,30 @@ namespace RevitToolkit.UI
             OrientationCombo.SelectedIndex = 0;
 
             BuildCategoryPanel();
-            BuildViewList(null); // null = show all supported types
+            BuildViewList(null);
+            ApplySettings();
+        }
+
+        private void ApplySettings()
+        {
+            LeaderCheckBox.IsChecked        = _settings.LeaderEnabled;
+            OneTagPerTypeCheckBox.IsChecked = _settings.OneTagPerType;
+            AvoidOverlapsCheckBox.IsChecked = _settings.AvoidOverlaps;
+            OrientationCombo.SelectedIndex  = _settings.OrientationVertical ? 1 : 0;
+
+            if (!string.IsNullOrEmpty(_settings.LastTagFamilyName))
+            {
+                var match = TagTypeCombo.Items.Cast<FamilySymbol>()
+                    .FirstOrDefault(fs => fs.FamilyName == _settings.LastTagFamilyName);
+                if (match != null) TagTypeCombo.SelectedItem = match;
+            }
+
+            if (_settings.LastCategories.Any())
+            {
+                var saved = new HashSet<int>(_settings.LastCategories);
+                foreach (var (cb, cat) in _catBoxes)
+                    cb.IsChecked = saved.Contains((int)cat);
+            }
         }
 
         private void BuildCategoryPanel()
@@ -303,17 +328,25 @@ namespace RevitToolkit.UI
             if (ThresholdCheckBox.IsChecked == true)
                 int.TryParse(ThresholdValue.Text, out threshold);
 
-            TargetDoc          = src.Doc;
-            SelectedLink       = src.Link;
-            SelectedCategories = cats;
-            SelectedTagType    = TagTypeCombo.SelectedItem as FamilySymbol;
-            LeaderEnabled      = LeaderCheckBox.IsChecked == true;
-            OneTagPerType      = OneTagPerTypeCheckBox.IsChecked == true;
-            AvoidOverlaps      = AvoidOverlapsCheckBox.IsChecked == true;
+            TargetDoc           = src.Doc;
+            SelectedLink        = src.Link;
+            SelectedCategories  = cats;
+            SelectedTagType     = TagTypeCombo.SelectedItem as FamilySymbol;
+            LeaderEnabled       = LeaderCheckBox.IsChecked == true;
+            OneTagPerType       = OneTagPerTypeCheckBox.IsChecked == true;
+            AvoidOverlaps       = AvoidOverlapsCheckBox.IsChecked == true;
             SelectedOrientation = OrientationCombo.SelectedIndex == 1
                                   ? TagOrientation.Vertical : TagOrientation.Horizontal;
-            SelectedViews      = selectedViews;
+            SelectedViews       = selectedViews;
             MinElementThreshold = threshold;
+
+            _settings.LeaderEnabled       = LeaderEnabled;
+            _settings.OneTagPerType       = OneTagPerType;
+            _settings.AvoidOverlaps       = AvoidOverlaps;
+            _settings.OrientationVertical = SelectedOrientation == TagOrientation.Vertical;
+            _settings.LastTagFamilyName   = SelectedTagType?.FamilyName ?? "";
+            _settings.LastCategories      = cats.Select(c => (int)c).ToList();
+            _settings.Save();
 
             DialogResult = true;
             Close();
