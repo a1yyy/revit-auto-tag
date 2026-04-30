@@ -249,19 +249,12 @@ namespace RevitToolkit.Commands
                     .ToElements();
             }
 
-            // For linked model: collect from link document
-            // We still filter by the host view's crop box bounding volume
-            BoundingBoxXYZ viewBB = activeView.CropBox;
-            Outline viewOutline = new Outline(
-                link.GetTransform().Inverse.OfPoint(viewBB.Min),
-                link.GetTransform().Inverse.OfPoint(viewBB.Max));
-
-            var bbFilter = new BoundingBoxIntersectsFilter(viewOutline);
-
+            // For linked model: collect all elements of the category — no bbox filter.
+            // Elements not visible in the view will cause IndependentTag.Create to throw,
+            // which is caught in the placement loop and counted as skipped.
             return new FilteredElementCollector(targetDoc)
                 .OfCategory(category)
                 .WhereElementIsNotElementType()
-                .WherePasses(bbFilter)
                 .ToElements();
         }
 

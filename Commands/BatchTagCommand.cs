@@ -146,14 +146,8 @@ namespace RevitToolkit.Commands
                 return new FilteredElementCollector(hostDoc, view.Id)
                     .OfCategory(category).WhereElementIsNotElementType().ToElements();
 
-            BoundingBoxXYZ viewBB  = view.CropBox;
-            Outline viewOutline    = new Outline(
-                link.GetTransform().Inverse.OfPoint(viewBB.Min),
-                link.GetTransform().Inverse.OfPoint(viewBB.Max));
-
             return new FilteredElementCollector(targetDoc)
                 .OfCategory(category).WhereElementIsNotElementType()
-                .WherePasses(new BoundingBoxIntersectsFilter(viewOutline))
                 .ToElements();
         }
 
