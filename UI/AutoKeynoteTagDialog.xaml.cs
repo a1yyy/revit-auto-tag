@@ -222,7 +222,6 @@ namespace RevitToolkit.UI
                     .ToList();
 
             TagTypeCombo.ItemsSource   = types;
-            TagTypeCombo.DisplayMemberPath = "FamilyName";
             TagTypeCombo.SelectedIndex = types.Any() ? 0 : -1;
 
             if (!types.Any())

@@ -134,7 +134,6 @@ namespace RevitToolkit.UI
                 .OrderBy(fs => fs.FamilyName).ThenBy(fs => fs.Name).ToList();
 
             TagTypeCombo.ItemsSource   = types;
-            TagTypeCombo.DisplayMemberPath = "FamilyName";
             TagTypeCombo.SelectedIndex = types.Any() ? 0 : -1;
             if (!types.Any()) { TagTypeWarning.Visibility = System.Windows.Visibility.Visible; OkBtn.IsEnabled = false; }
 
