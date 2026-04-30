@@ -164,7 +164,7 @@ namespace RevitToolkit.Commands
                 .OfClass(typeof(IndependentTag)).Cast<IndependentTag>())
             {
                 try { foreach (var id in tag.GetTaggedLocalElementIds()) ids.Add(id); }
-                catch { try { ids.Add(tag.TaggedLocalElementId); } catch { } }
+                catch { }
             }
             return ids;
         }

@@ -281,11 +281,7 @@ namespace RevitToolkit.Commands
                     var ids = tag.GetTaggedLocalElementIds();
                     foreach (var id in ids) taggedIds.Add(id);
                 }
-                catch
-                {
-                    // Fallback for older API
-                    try { taggedIds.Add(tag.TaggedLocalElementId); } catch { }
-                }
+                catch { }
             }
 
             return taggedIds;

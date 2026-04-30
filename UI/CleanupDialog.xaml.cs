@@ -141,14 +141,8 @@ namespace RevitToolkit.UI
 
         private ElementId GetPrimaryTaggedId(IndependentTag tag)
         {
-            try
-            {
-                return tag.GetTaggedLocalElementIds()?.FirstOrDefault();
-            }
-            catch
-            {
-                try { return tag.TaggedLocalElementId; } catch { return null; }
-            }
+            try { return tag.GetTaggedLocalElementIds()?.FirstOrDefault(); }
+            catch { return null; }
         }
 
         private Element GetElementFromAnyDoc(ElementId id)

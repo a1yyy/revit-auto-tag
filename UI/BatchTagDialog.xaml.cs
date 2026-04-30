@@ -5,6 +5,8 @@ using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
+using WpfColor = System.Windows.Media.Color;
+using WpfGrid = System.Windows.Controls.Grid;
 
 namespace RevitToolkit.UI
 {
@@ -134,7 +136,7 @@ namespace RevitToolkit.UI
             TagTypeCombo.ItemsSource   = types;
             TagTypeCombo.DisplayMemberPath = "FamilyName";
             TagTypeCombo.SelectedIndex = types.Any() ? 0 : -1;
-            if (!types.Any()) { TagTypeWarning.Visibility = Visibility.Visible; OkBtn.IsEnabled = false; }
+            if (!types.Any()) { TagTypeWarning.Visibility = System.Windows.Visibility.Visible; OkBtn.IsEnabled = false; }
 
             // Orientation
             OrientationCombo.ItemsSource   = new[] { "Horizontal", "Vertical" };
@@ -172,8 +174,8 @@ namespace RevitToolkit.UI
             CategoryPanel.Children.Clear();
             _catBoxes.Clear();
 
-            var hdrBrush  = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#89B4FA"));
-            var textBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#CDD6F4"));
+            var hdrBrush  = new SolidColorBrush((WpfColor)ColorConverter.ConvertFromString("#89B4FA"));
+            var textBrush = new SolidColorBrush((WpfColor)ColorConverter.ConvertFromString("#CDD6F4"));
             int curGroup  = -1;
 
             foreach (var (name, cat, group) in AllCategories)
@@ -206,8 +208,8 @@ namespace RevitToolkit.UI
             ViewPanel.Children.Clear();
             _viewBoxes.Clear();
 
-            var textBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#CDD6F4"));
-            var dimBrush  = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#6C7086"));
+            var textBrush = new SolidColorBrush((WpfColor)ColorConverter.ConvertFromString("#CDD6F4"));
+            var dimBrush  = new SolidColorBrush((WpfColor)ColorConverter.ConvertFromString("#6C7086"));
 
             var views = new FilteredElementCollector(_hostDoc)
                 .OfClass(typeof(View)).Cast<View>()
@@ -218,13 +220,13 @@ namespace RevitToolkit.UI
 
             foreach (var view in views)
             {
-                var row = new Grid { Margin = new Thickness(0, 2, 0, 2) };
+                var row = new WpfGrid { Margin = new Thickness(0, 2, 0, 2) };
                 row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
                 row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
                 row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
 
                 var cb = new CheckBox { VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 8, 0) };
-                Grid.SetColumn(cb, 0);
+                WpfGrid.SetColumn(cb, 0);
 
                 var name = new TextBlock
                 {
@@ -232,7 +234,7 @@ namespace RevitToolkit.UI
                     FontFamily = new FontFamily("Segoe UI"), FontSize = 12,
                     VerticalAlignment = VerticalAlignment.Center,
                 };
-                Grid.SetColumn(name, 1);
+                WpfGrid.SetColumn(name, 1);
 
                 var typeLabel = new TextBlock
                 {
@@ -240,7 +242,7 @@ namespace RevitToolkit.UI
                     Foreground = dimBrush, FontSize = 10,
                     VerticalAlignment = VerticalAlignment.Center,
                 };
-                Grid.SetColumn(typeLabel, 2);
+                WpfGrid.SetColumn(typeLabel, 2);
 
                 row.Children.Add(cb);
                 row.Children.Add(name);

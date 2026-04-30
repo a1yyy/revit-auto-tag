@@ -5,6 +5,7 @@ using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
+using WpfColor = System.Windows.Media.Color;
 
 namespace RevitToolkit.UI
 {
@@ -161,8 +162,8 @@ namespace RevitToolkit.UI
             CategoryPanel.Children.Clear();
             _categoryCheckBoxes.Clear();
 
-            var headerBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#89B4FA"));
-            var textBrush   = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#CDD6F4"));
+            var headerBrush = new SolidColorBrush((WpfColor)ColorConverter.ConvertFromString("#89B4FA"));
+            var textBrush   = new SolidColorBrush((WpfColor)ColorConverter.ConvertFromString("#CDD6F4"));
 
             int currentGroup = -1;
 
@@ -226,7 +227,7 @@ namespace RevitToolkit.UI
 
             if (!types.Any())
             {
-                TagTypeWarning.Visibility = Visibility.Visible;
+                TagTypeWarning.Visibility = System.Windows.Visibility.Visible;
                 OkBtn.IsEnabled = false;
             }
         }
