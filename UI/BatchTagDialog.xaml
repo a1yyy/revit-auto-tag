@@ -95,9 +95,9 @@
                     <ComboBox.ItemTemplate>
                         <DataTemplate>
                             <TextBlock FontSize="11">
-                                <Run Text="{Binding FamilyName}"/>
+                                <Run Text="{Binding FamilyName, Mode=OneWay}"/>
                                 <Run Text=" — " Foreground="#6C7086"/>
-                                <Run Text="{Binding Name}" Foreground="#6C7086"/>
+                                <Run Text="{Binding Name, Mode=OneWay}" Foreground="#6C7086"/>
                             </TextBlock>
                         </DataTemplate>
                     </ComboBox.ItemTemplate>
