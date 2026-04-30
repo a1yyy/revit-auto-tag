@@ -5,37 +5,21 @@
     <AssemblyName>RevitToolkit</AssemblyName>
     <RootNamespace>RevitToolkit</RootNamespace>
     <Nullable>enable</Nullable>
+    <LangVersion>latest</LangVersion>
     <Platforms>x64</Platforms>
     <UseWPF>true</UseWPF>
-    <!-- Post-build: copy to Revit addins folder automatically -->
-    <PostBuildEvent>
+    <!-- Post-build: copy to Revit addins folder (skipped in CI) -->
+    <PostBuildEvent Condition="'$(CI)' != 'true'">
       xcopy /Y /I "$(TargetPath)" "$(AppData)\Autodesk\Revit\Addins\2024\"
       xcopy /Y /I "$(ProjectDir)RevitToolkit.addin" "$(AppData)\Autodesk\Revit\Addins\2024\"
     </PostBuildEvent>
   </PropertyGroup>
 
-  <!-- Revit API references — adjust path for your Revit version -->
+  <!-- Revit API references — NuGet stubs for CI; HintPath used if DLLs exist locally -->
   <ItemGroup>
-    <Reference Include="RevitAPI">
-      <HintPath>C:\Program Files\Autodesk\Revit 2024\RevitAPI.dll</HintPath>
-      <Private>false</Private>
-    </Reference>
-    <Reference Include="RevitAPIUI">
-      <HintPath>C:\Program Files\Autodesk\Revit 2024\RevitAPIUI.dll</HintPath>
-      <Private>false</Private>
-    </Reference>
+    <PackageReference Include="Nice3point.Revit.Api.RevitAPI" Version="2024.*"/>
+    <PackageReference Include="Nice3point.Revit.Api.RevitAPIUI" Version="2024.*"/>
   </ItemGroup>
 
-  <!-- XAML pages -->
-  <ItemGroup>
-    <Page Include="UI\CopyDimensionsDialog.xaml">
-      <Generator>MSBuild:Compile</Generator>
-      <SubType>Designer</SubType>
-    </Page>
-    <Page Include="UI\AutoKeynoteTagDialog.xaml">
-      <Generator>MSBuild:Compile</Generator>
-      <SubType>Designer</SubType>
-    </Page>
-  </ItemGroup>
 
 </Project>

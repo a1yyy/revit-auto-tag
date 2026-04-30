@@ -1,0 +1,30 @@
+name: Build RevitToolkit
+
+on:
+  push:
+  workflow_dispatch:
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Build Release
+        run: msbuild RevitToolkit.csproj /p:Configuration=Release /p:Platform=x64 /restore /p:CI=true
+
+      - name: Upload plugin files
+        uses: actions/upload-artifact@v4
+        with:
+          name: RevitToolkit-Plugin
+          path: |
+            bin/x64/Release/net48/RevitToolkit.dll
+            RevitToolkit.addin
+          retention-days: 90

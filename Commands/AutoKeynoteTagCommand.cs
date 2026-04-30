@@ -40,12 +40,14 @@ namespace RevitToolkit.Commands
                 if (dialog.ShowDialog() != true)
                     return Result.Cancelled;
 
-                Document targetDoc     = dialog.SelectedDocument;   // host or linked
-                RevitLinkInstance link = dialog.SelectedLinkInstance; // null if host
-                BuiltInCategory category = dialog.SelectedCategory;
-                FamilySymbol tagType   = dialog.SelectedKeynoteTagType;
-                bool leaderEnabled     = dialog.LeaderEnabled;
-                TagOrientation orientation = dialog.SelectedOrientation;
+                Document targetDoc                  = dialog.SelectedDocument;
+                RevitLinkInstance link              = dialog.SelectedLinkInstance;
+                List<BuiltInCategory> categories    = dialog.SelectedCategories;
+                FamilySymbol tagType                = dialog.SelectedKeynoteTagType;
+                bool leaderEnabled                  = dialog.LeaderEnabled;
+                bool oneTagPerType                  = dialog.OneTagPerType;
+                bool avoidOverlaps                  = dialog.AvoidOverlaps;
+                TagOrientation orientation          = dialog.SelectedOrientation;
 
                 if (tagType == null)
                 {
@@ -53,32 +55,49 @@ namespace RevitToolkit.Commands
                     return Result.Cancelled;
                 }
 
-                // Collect target elements visible in active view
-                IEnumerable<Element> candidates = CollectTaggableElements(
-                    doc, targetDoc, link, activeView, category);
-
-                // Filter already-tagged elements
-                var existingTaggedIds = GetAlreadyTaggedElementIds(doc, activeView);
-                var toTag = candidates
-                    .Where(e => !existingTaggedIds.Contains(e.Id))
+                // Collect from every selected category; deduplicate by ElementId
+                var candidates = categories
+                    .SelectMany(cat => CollectTaggableElements(doc, targetDoc, link, activeView, cat))
+                    .GroupBy(e => e.Id)
+                    .Select(g => g.First())
                     .ToList();
+
+                var existingTaggedIds = GetAlreadyTaggedElementIds(doc, activeView);
+
+                List<Element> toTag;
+                if (oneTagPerType)
+                {
+                    // One tag per unique family type: group candidates by TypeId,
+                    // skip any group where at least one instance is already tagged.
+                    toTag = candidates
+                        .GroupBy(e => e.GetTypeId())
+                        .Where(g => !g.Any(e => existingTaggedIds.Contains(e.Id)))
+                        .Select(g => g.First())
+                        .ToList();
+                }
+                else
+                {
+                    toTag = candidates
+                        .Where(e => !existingTaggedIds.Contains(e.Id))
+                        .ToList();
+                }
 
                 if (toTag.Count == 0)
                 {
                     TaskDialog.Show("Auto Keynote Tag",
-                        "All visible elements in this category are already tagged, or no elements were found.");
+                        "All visible elements in the selected categories are already tagged, or no elements were found.");
                     return Result.Succeeded;
                 }
 
                 int placed = 0;
                 int skipped = 0;
                 var errors = new List<string>();
+                var placedTagIds = new List<ElementId>();
 
                 using (Transaction tx = new Transaction(doc, "Auto Place Keynote Tags"))
                 {
                     tx.Start();
 
-                    // Activate tag symbol if needed
                     if (!tagType.IsActive)
                         tagType.Activate();
 
@@ -93,7 +112,7 @@ namespace RevitToolkit.Commands
                                 ? new Reference(elem).CreateLinkReference(link)
                                 : new Reference(elem);
 
-                            IndependentTag.Create(
+                            IndependentTag newTag = IndependentTag.Create(
                                 doc,
                                 tagType.Id,
                                 activeView.Id,
@@ -102,6 +121,7 @@ namespace RevitToolkit.Commands
                                 orientation,
                                 tagPoint);
 
+                            placedTagIds.Add(newTag.Id);
                             placed++;
                         }
                         catch (Exception ex)
@@ -115,8 +135,13 @@ namespace RevitToolkit.Commands
                     tx.Commit();
                 }
 
-                string summary = $"✅ Keynote tags placed: {placed}\n" +
-                                 $"⏭  Skipped (no geometry / already tagged): {skipped}";
+                if (avoidOverlaps && placedTagIds.Count > 1)
+                    ResolveTagOverlaps(doc, activeView, placedTagIds);
+
+                string mode    = oneTagPerType ? "one per family type" : "all instances";
+                string summary = $"✅ Keynote tags placed: {placed}  ({mode})\n" +
+                                 $"⏭  Skipped (no geometry / already tagged): {skipped}\n" +
+                                 $"   Categories tagged: {categories.Count}";
                 if (errors.Any())
                     summary += "\n\nFirst errors:\n" + string.Join("\n", errors);
 
@@ -127,6 +152,82 @@ namespace RevitToolkit.Commands
             {
                 message = ex.Message;
                 return Result.Failed;
+            }
+        }
+
+        // ─── Overlap resolution ──────────────────────────────────────────────────────
+
+        // Iteratively nudges tags apart using their initial bounding-box sizes.
+        // All final positions are written in one transaction (one undo step).
+        private void ResolveTagOverlaps(Document doc, View view, List<ElementId> tagIds)
+        {
+            const int MaxIterations = 8;
+            const double Margin = 0.02; // ~6 mm padding between tags (internal feet units)
+
+            var tags = tagIds
+                .Select(id => doc.GetElement(id) as IndependentTag)
+                .Where(t => t != null)
+                .ToList();
+
+            // Snapshot initial bounding-box half-extents (fixed — tags don't resize when moved)
+            var halfW = new double[tags.Count];
+            var halfH = new double[tags.Count];
+            for (int i = 0; i < tags.Count; i++)
+            {
+                BoundingBoxXYZ bb = tags[i].get_BoundingBox(view);
+                if (bb != null)
+                {
+                    halfW[i] = (bb.Max.X - bb.Min.X) / 2.0;
+                    halfH[i] = (bb.Max.Y - bb.Min.Y) / 2.0;
+                }
+            }
+
+            // Work on positions in memory
+            var pos = tags.Select(t => t.TagHeadPosition).ToArray();
+
+            for (int iter = 0; iter < MaxIterations; iter++)
+            {
+                bool anyOverlap = false;
+                var delta = new XYZ[tags.Count];
+                for (int k = 0; k < delta.Length; k++) delta[k] = XYZ.Zero;
+
+                for (int i = 0; i < tags.Count; i++)
+                {
+                    for (int j = i + 1; j < tags.Count; j++)
+                    {
+                        double gapX = Math.Abs(pos[i].X - pos[j].X) - (halfW[i] + halfW[j] + Margin);
+                        double gapY = Math.Abs(pos[i].Y - pos[j].Y) - (halfH[i] + halfH[j] + Margin);
+
+                        if (gapX >= 0 || gapY >= 0) continue; // no overlap
+
+                        anyOverlap = true;
+
+                        // Push along the axis with the smaller gap (least effort to separate)
+                        XYZ dir = new XYZ(pos[i].X - pos[j].X, pos[i].Y - pos[j].Y, 0);
+                        if (dir.IsZeroLength()) dir = XYZ.BasisX;
+                        dir = dir.Normalize();
+
+                        double push = (Math.Min(-gapX, -gapY) / 2.0) + 0.001;
+                        delta[i] = delta[i].Add(dir.Multiply(push));
+                        delta[j] = delta[j].Add(dir.Negate().Multiply(push));
+                    }
+                }
+
+                if (!anyOverlap) break;
+
+                for (int i = 0; i < pos.Length; i++)
+                    pos[i] = pos[i].Add(delta[i]);
+            }
+
+            // Write all resolved positions in one transaction
+            using (Transaction tx = new Transaction(doc, "Resolve Tag Overlaps"))
+            {
+                tx.Start();
+                for (int i = 0; i < tags.Count; i++)
+                {
+                    try { tags[i].TagHeadPosition = pos[i]; } catch { }
+                }
+                tx.Commit();
             }
         }
 
@@ -148,19 +249,12 @@ namespace RevitToolkit.Commands
                     .ToElements();
             }
 
-            // For linked model: collect from link document
-            // We still filter by the host view's crop box bounding volume
-            BoundingBoxXYZ viewBB = activeView.CropBox;
-            Outline viewOutline = new Outline(
-                link.GetTransform().Inverse.OfPoint(viewBB.Min),
-                link.GetTransform().Inverse.OfPoint(viewBB.Max));
-
-            var bbFilter = new BoundingBoxIntersectsFilter(viewOutline);
-
+            // For linked model: collect all elements of the category — no bbox filter.
+            // Elements not visible in the view will cause IndependentTag.Create to throw,
+            // which is caught in the placement loop and counted as skipped.
             return new FilteredElementCollector(targetDoc)
                 .OfCategory(category)
                 .WhereElementIsNotElementType()
-                .WherePasses(bbFilter)
                 .ToElements();
         }
 
@@ -180,11 +274,7 @@ namespace RevitToolkit.Commands
                     var ids = tag.GetTaggedLocalElementIds();
                     foreach (var id in ids) taggedIds.Add(id);
                 }
-                catch
-                {
-                    // Fallback for older API
-                    try { taggedIds.Add(tag.TaggedLocalElementId); } catch { }
-                }
+                catch { }
             }
 
             return taggedIds;

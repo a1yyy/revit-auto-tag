@@ -92,7 +92,7 @@ namespace RevitToolkit.Commands
 
         private void CopyDimensionsToView(Document doc, List<Dimension> sourceDimensions, View sourceView, View targetView)
         {
-            // Build a map of element IDs visible in the target view for reference validation
+            // Build a set of host-model element IDs visible in the target view
             var targetVisibleIds = new FilteredElementCollector(doc, targetView.Id)
                 .WhereElementIsNotElementType()
                 .ToElementIds()
@@ -104,16 +104,12 @@ namespace RevitToolkit.Commands
             {
                 try
                 {
-                    // Validate that all dimension references exist in target view
-                    bool refsValid = ValidateDimensionRefs(dim, targetVisibleIds);
-
-                    if (!refsValid)
+                    if (!ValidateDimensionRefs(doc, dim, targetVisibleIds))
                     {
                         idsToExclude.Add(dim.Id);
                         continue;
                     }
 
-                    // Copy element to target view using CopyElements
                     ICollection<ElementId> copiedIds = ElementTransformUtils.CopyElements(
                         sourceView,
                         new List<ElementId> { dim.Id },
@@ -121,7 +117,6 @@ namespace RevitToolkit.Commands
                         Transform.Identity,
                         new CopyPasteOptions());
 
-                    // Restore text overrides per segment
                     RestoreTextOverrides(doc, dim, copiedIds);
                 }
                 catch
@@ -131,13 +126,24 @@ namespace RevitToolkit.Commands
             }
         }
 
-        private bool ValidateDimensionRefs(Dimension dim, HashSet<ElementId> targetIds)
+        private bool ValidateDimensionRefs(Document doc, Dimension dim, HashSet<ElementId> targetIds)
         {
             if (dim.References == null) return false;
 
             foreach (Reference r in dim.References)
             {
                 if (r.ElementId == ElementId.InvalidElementId) continue;
+
+                // Linked model reference: the ElementId points to a RevitLinkInstance.
+                // We only require the link to be loaded — the sub-element reference
+                // is encoded in the stable reference string and survives CopyElements.
+                if (doc.GetElement(r.ElementId) is RevitLinkInstance linkInst)
+                {
+                    if (linkInst.GetLinkDocument() == null) return false;
+                    continue;
+                }
+
+                // Host model reference: element must be visible in the target view.
                 if (!targetIds.Contains(r.ElementId)) return false;
             }
             return true;
