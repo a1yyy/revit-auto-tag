@@ -25,6 +25,6 @@ jobs:
         with:
           name: RevitToolkit-Plugin
           path: |
-            bin/Release/net48/RevitToolkit.dll
+            bin/x64/Release/net48/RevitToolkit.dll
             RevitToolkit.addin
           retention-days: 90
