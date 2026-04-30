@@ -5,6 +5,7 @@
     <AssemblyName>RevitToolkit</AssemblyName>
     <RootNamespace>RevitToolkit</RootNamespace>
     <Nullable>enable</Nullable>
+    <LangVersion>latest</LangVersion>
     <Platforms>x64</Platforms>
     <UseWPF>true</UseWPF>
     <!-- Post-build: copy to Revit addins folder (skipped in CI) -->
