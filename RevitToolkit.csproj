@@ -20,24 +20,5 @@
     <PackageReference Include="Nice3point.Revit.Api.RevitAPIUI" Version="2024.*"/>
   </ItemGroup>
 
-  <!-- XAML pages -->
-  <ItemGroup>
-    <Page Include="UI\BatchTagDialog.xaml">
-      <Generator>MSBuild:Compile</Generator>
-      <SubType>Designer</SubType>
-    </Page>
-    <Page Include="UI\CleanupDialog.xaml">
-      <Generator>MSBuild:Compile</Generator>
-      <SubType>Designer</SubType>
-    </Page>
-    <Page Include="UI\CopyDimensionsDialog.xaml">
-      <Generator>MSBuild:Compile</Generator>
-      <SubType>Designer</SubType>
-    </Page>
-    <Page Include="UI\AutoKeynoteTagDialog.xaml">
-      <Generator>MSBuild:Compile</Generator>
-      <SubType>Designer</SubType>
-    </Page>
-  </ItemGroup>
 
 </Project>
